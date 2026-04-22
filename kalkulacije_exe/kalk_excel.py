@@ -95,6 +95,7 @@ class Row:
     d: str = ""
     e: str = ""
     f: float | None = None
+    z: str = ""  # 26. stolpec CSV -> stolpec Z v XLSX (alfa koda za zunanji sistem)
     xlsx_row: int = 0
     children_rows: list[int] = field(default_factory=list)
 
@@ -143,8 +144,10 @@ def parse_csv(path: Path) -> tuple[str, list[Row]]:
             d = raw_row[3].strip() if len(raw_row) > 3 else ""
             e = raw_row[4].strip() if len(raw_row) > 4 else ""
             f = parse_num(raw_row[5]) if len(raw_row) > 5 else None
+            # 26. stolpec (indeks 25) = alfa koda za zunanji sistem (stolpec Z v XLSX).
+            z = raw_row[25].strip() if len(raw_row) > 25 else ""
             rows.append(Row(kind="item", level=level + 1, a=a,
-                            b=b, c=c, d=d, e=e, f=f))
+                            b=b, c=c, d=d, e=e, f=f, z=z))
 
     return title, rows
 
@@ -260,6 +263,9 @@ def write_xlsx(title: str, rows: list[Row], out_path: Path) -> None:
             # F (Cena) prazno — izpolni uporabnik.
             ws.cell(row=xr, column=7,
                     value=f"=ROUND(${COL_KOLICINA}{xr}*{COL_CENA}{xr},2)")
+            # Z (skrit) — alfa koda iz 26. stolpca CSV.
+            if r.z:
+                ws.cell(row=xr, column=26, value=r.z)
             fill = None
             make_bold = False
         else:  # section
