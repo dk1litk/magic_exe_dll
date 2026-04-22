@@ -32,8 +32,21 @@ from openpyxl.utils import get_column_letter
 ENCODINGS = ("utf-8-sig", "utf-8", "cp1250", "cp1252")
 
 FILL_TOTAL = PatternFill(start_color="FFBEF0BE", end_color="FFBEF0BE", fill_type="solid")
-FILL_L1 = PatternFill(start_color="FFC6D7F5", end_color="FFC6D7F5", fill_type="solid")
-FILL_L2 = PatternFill(start_color="FFF0F0F0", end_color="FFF0F0F0", fill_type="solid")
+
+
+def fill_for_level(level: int) -> PatternFill:
+    """Vrne odtenek modro-sive za sekcijo dolocenega nivoja (1..N).
+
+    L1 = polni moder (#C6D7F5), potem vsak nizji nivo progresivno svetlejsi
+    do skoraj bele pri L10+. Algoritem je skalabilen — ce ima popis 10 ali
+    20 nivojev, vsak dobi svoj odtenek (gornji clamp pri L10).
+    """
+    t = min(max(level - 1, 0) / 10.0, 1.0)
+    r = round(198 + t * (255 - 198))
+    g = round(215 + t * (255 - 215))
+    b = round(245 + t * (255 - 245))
+    color = f"FF{r:02X}{g:02X}{b:02X}"
+    return PatternFill(start_color=color, end_color=color, fill_type="solid")
 
 FMT_KOLICINA = "#,##0.00##"
 FMT_EUR = '#,##0.00\\ "€"'
@@ -227,12 +240,8 @@ def write_xlsx(title: str, rows: list[Row], out_path: Path) -> None:
 
         # formati + alignment + fill + bold
         is_bold = r.kind == "section"
-        if r.kind == "section" and r.level == 1:
-            fill = FILL_L1
-        elif r.kind == "section" and r.level == 2:
-            fill = FILL_L2
-        else:
-            fill = None
+        # VSE sekcije dobijo odtenek (skaliran na poljubno globino). Postavke brez filla.
+        fill = fill_for_level(r.level) if r.kind == "section" else None
 
         for c_idx in range(1, 9):
             cell = ws.cell(row=xr, column=c_idx)
