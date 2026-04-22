@@ -8,7 +8,7 @@ Sourci za **Kalkulacije** (Magic dodatki, EXE) — seja 902.
 
 - **Stack**: Python 3 + openpyxl + PyInstaller (onefile, self-contained)
 - **Source**: [kalk_excel.py](kalk_excel.py)
-- **Build**: [build.ps1](build.ps1) -> `c:/Projekti/ai_exe_dll/kalkulacije_exe/kalk_excel.exe`
+- **Build**: [build.ps1](build.ps1) -> `c:/ai_exe_dll/kalkulacije_exe/kalk_excel.exe`
 - **Uporaba**: `kalk_excel.exe <input.csv> <output.xlsx>`
 - **Features**:
   - Auto-detect encoding (UTF-8 BOM / UTF-8 / cp1250 / cp1252)
@@ -21,7 +21,7 @@ Sourci za **Kalkulacije** (Magic dodatki, EXE) — seja 902.
 ## Poti
 
 - **Source**: `c:/Projekti/magic_exe_dll/kalkulacije_exe/` (pod git-om)
-- **Build output**: `c:/Projekti/ai_exe_dll/kalkulacije_exe/` (ni pod git-om)
+- **Build output**: `c:/ai_exe_dll/kalkulacije_exe/` (ni pod git-om)
 
 ## Build setup (enkrat)
 

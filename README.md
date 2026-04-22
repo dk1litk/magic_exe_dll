@@ -5,7 +5,7 @@ Sourci za Magic dodatke (EXE + DLL) — seja Claude 902.
 ## Layout
 
 - **`c:/Projekti/magic_exe_dll/`** — ta repo, samo sourci (source tree).
-- **`c:/Projekti/ai_exe_dll/`** — buildani artefakti (EXE/DLL). **Ni** pod git-om tega repoja.
+- **`c:/ai_exe_dll/`** — buildani artefakti (EXE/DLL). **Ni** pod git-om tega repoja.
 
 **En program = en podfolder.** Pred vsakim novim programom se uporabnik in Claude dogovorita za ime (glej pravilo 1a v [.ai/902/CLAUDE.md](../.ai/902/CLAUDE.md)).
 

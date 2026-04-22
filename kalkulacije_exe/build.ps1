@@ -9,7 +9,7 @@
 $ErrorActionPreference = "Stop"
 
 $here = $PSScriptRoot
-$out  = "C:\Projekti\ai_exe_dll\kalkulacije_exe"
+$out  = "C:\ai_exe_dll\kalkulacije_exe"
 
 Write-Host "== kalk_excel.exe build ==" -ForegroundColor Cyan
 Write-Host "Source: $here"
