@@ -251,9 +251,11 @@ def write_xlsx(title: str, rows: list[Row], out_path: Path) -> None:
     ws.sheet_properties.outlinePr.summaryBelow = False
     ws.sheet_properties.outlinePr.summaryRight = False
 
-    # Column widths (A..G + Z).
+    # Column widths (A..H + Z).
     for letter, w in COL_WIDTHS.items():
         ws.column_dimensions[letter].width = w
+    # Stolpec Z: polnjen z alfa kodo iz CSV, skrit.
+    ws.column_dimensions["Z"].hidden = True
 
     # R1: glavni naslov
     ws.cell(row=1, column=1, value="Ponudbene postavke").alignment = WRAP
