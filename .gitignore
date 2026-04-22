@@ -1,0 +1,27 @@
+# Build output (gre v c:/Projekti/ai_exe_dll/, ne tukaj)
+*.exe
+*.dll
+*.pdb
+*.obj
+*.o
+*.lib
+*.a
+*.exp
+*.ilk
+*.idb
+*.map
+
+# IDE / OS
+.vs/
+.vscode/
+*.user
+*.suo
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Temp
+*.tmp
+*.log
+*.bak
+*~
