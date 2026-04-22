@@ -44,24 +44,31 @@ COLOR_L7_RGB = (232, 245, 232)  # #E8F5E8
 FMT_KOLICINA = "#,##0.00##"
 FMT_EUR = '#,##0.00\\ "€"'
 
-# 7 vidnih stolpcev + hidden Z (alfa polje 10-15 znakov).
+# 8 vidnih stolpcev + Z (alfa polje 10-15 znakov, ne skrivamo po defaultu).
 COL_WIDTHS = {
     "A": 22.0,   # Nivo (npr. "1.1.1.1.1.1.")
     "B": 10.0,   # Postavka (npr. "0001")
-    "C": 57.0,   # Opis postavke (+opombe)
-    "D": 11.0,   # Enota mere (m2, KOS, M3, ...)
-    "E": 10.0,   # Kolicina
-    "F": 12.0,   # Cena
-    "G": 14.0,   # Znesek
-    "Z": 15.0,   # hidden alfa polje
+    "C": 50.0,   # Opis (pure, brez opomb)
+    "D": 40.0,   # Opomba
+    "E": 11.0,   # Enota mere (m2, KOS, M3, ...)
+    "F": 10.0,   # Kolicina
+    "G": 12.0,   # Cena
+    "H": 14.0,   # Znesek
+    "Z": 15.0,   # alfa polje (koda zunanjega sistema)
 }
 
-HEADERS = ["Nivo", "Postavka", "Opis postavke", "Enota mere", "Količina", "Cena", "znesek"]
+HEADERS = ["Nivo", "Postavka", "Opis", "Opomba", "Enota mere", "Količina", "Cena", "znesek"]
 
-# Stolpec formul: G = znesek. Za ROUND pri postavkah: G = ROUND(E * F, 2).
-COL_ZNESEK = "G"
-COL_KOLICINA = "E"
-COL_CENA = "F"
+# Stolpec formul: H = znesek. Za ROUND pri postavkah: H = ROUND(F * G, 2).
+COL_ZNESEK = "H"
+COL_KOLICINA = "F"
+COL_CENA = "G"
+
+# Stevilski-format stolpci (1-based).
+COL_IDX_KOLICINA = 6  # F
+COL_IDX_CENA = 7      # G
+COL_IDX_ZNESEK = 8    # H
+NUM_VISIBLE_COLS = 8  # A..H
 
 WRAP = Alignment(wrap_text=True, vertical="top")
 
@@ -183,30 +190,38 @@ def sum_formula(rows_xlsx: list[int]) -> str:
     return f"=SUM({refs},)"
 
 
-_OPOMBA_RE = re.compile(r"(?<!^)(Opomba:|Opombe:)")
+_OPOMBA_RE = re.compile(r"(?<!^)(?<!\n)(Opomba:|Opombe:)")
+_OPOMBA_START_RE = re.compile(r"(Opomba:|Opombe:)")
 
 
 def _split_opombe(text: str) -> str:
-    """Vstavi newline pred vsakim 'Opomba:' / 'Opombe:' markerjem znotraj teksta.
-
-    Nekateri CSV-ji imajo 'opis.Opomba: ...Opombe: ...' v eni vrstici brez
-    locil — v Excelu se zlije. S tem splitom dobimo vsaj 3 vidne vrstice:
-    sam opis, Opomba: ..., Opombe: ...
-    """
+    """Vstavi newline pred vsakim 'Opomba:' / 'Opombe:' markerjem znotraj teksta."""
     if not text:
         return text
     return _OPOMBA_RE.sub(r"\n\1", text)
 
 
-def opis_cell_value(r: Row) -> str:
-    """Opis za postavko: zdruzi C (opis) + D (opomba), loci 'Opomba(e):' markerje."""
-    if not r.d:
-        return _split_opombe(r.c)
-    if r.c and r.c.strip() and r.c.strip() in r.d:
-        return _split_opombe(r.d)
-    if r.c and r.d:
-        return _split_opombe(f"{r.c}\n{r.d}")
-    return _split_opombe(r.d or r.c)
+def split_opis_opomba(r: Row) -> tuple[str, str]:
+    """Loci Opis (stolpec C) in Opomba (stolpec D).
+
+    1. Ce CSV Opomba (r.d) ni prazna: C = r.c, D = r.d (oboje s splitom markerjev).
+    2. Sicer poglej v r.c za 'Opomba:' / 'Opombe:' — vse pred markerjem gre v C,
+       ostalo z markerjem vred v D.
+    3. Ce markerja ni: vse v C, D prazen.
+    """
+    c_raw = r.c or ""
+    d_raw = r.d or ""
+
+    if d_raw.strip():
+        return _split_opombe(c_raw), _split_opombe(d_raw)
+
+    m = _OPOMBA_START_RE.search(c_raw)
+    if m:
+        opis = c_raw[:m.start()].rstrip(" .,;:-")
+        opomba = _split_opombe(c_raw[m.start():])
+        return opis, opomba
+
+    return c_raw, ""
 
 
 def l1_xlsx_rows(rows: list[Row]) -> list[int]:
@@ -216,16 +231,16 @@ def l1_xlsx_rows(rows: list[Row]) -> list[int]:
 def apply_cell_defaults(ws, row: int, fill: PatternFill | None, make_bold: bool) -> None:
     """Aplicira alignment/bold/fill in number formate na vsa vidna polja vrstice."""
     bold_font = Font(bold=True)
-    for c_idx in range(1, 8):  # A..G
+    for c_idx in range(1, NUM_VISIBLE_COLS + 1):  # A..H
         cell = ws.cell(row=row, column=c_idx)
         cell.alignment = WRAP
         if make_bold:
             cell.font = bold_font
         if fill is not None:
             cell.fill = fill
-    ws.cell(row=row, column=5).number_format = FMT_KOLICINA  # E
-    ws.cell(row=row, column=6).number_format = FMT_EUR       # F
-    ws.cell(row=row, column=7).number_format = FMT_EUR       # G
+    ws.cell(row=row, column=COL_IDX_KOLICINA).number_format = FMT_KOLICINA  # F
+    ws.cell(row=row, column=COL_IDX_CENA).number_format = FMT_EUR            # G
+    ws.cell(row=row, column=COL_IDX_ZNESEK).number_format = FMT_EUR          # H
 
 
 def write_xlsx(title: str, rows: list[Row], out_path: Path) -> None:
@@ -247,16 +262,16 @@ def write_xlsx(title: str, rows: list[Row], out_path: Path) -> None:
     for c_idx, h in enumerate(HEADERS, start=1):
         cell = ws.cell(row=2, column=c_idx, value=h)
         cell.alignment = WRAP
-    ws.cell(row=2, column=5).number_format = FMT_KOLICINA
-    ws.cell(row=2, column=6).number_format = FMT_EUR
-    ws.cell(row=2, column=7).number_format = FMT_EUR
+    ws.cell(row=2, column=COL_IDX_KOLICINA).number_format = FMT_KOLICINA
+    ws.cell(row=2, column=COL_IDX_CENA).number_format = FMT_EUR
+    ws.cell(row=2, column=COL_IDX_ZNESEK).number_format = FMT_EUR
 
     # R3: grand total
     apply_cell_defaults(ws, 3, FILL_TOTAL, make_bold=True)
     ws.cell(row=3, column=3, value=title)
     total_children = l1_xlsx_rows(rows)
     if total_children:
-        ws.cell(row=3, column=7, value=sum_formula(total_children))
+        ws.cell(row=3, column=COL_IDX_ZNESEK, value=sum_formula(total_children))
 
     # R4+: sekcije in postavke
     for r in rows:
@@ -266,14 +281,15 @@ def write_xlsx(title: str, rows: list[Row], out_path: Path) -> None:
         ws.cell(row=xr, column=2, value=r.b)  # Postavka
 
         if r.kind == "item":
-            ws.cell(row=xr, column=3, value=opis_cell_value(r))
-            ws.cell(row=xr, column=4, value=r.e)  # Enota mere
+            opis, opomba = split_opis_opomba(r)
+            ws.cell(row=xr, column=3, value=opis)
+            ws.cell(row=xr, column=4, value=opomba)
+            ws.cell(row=xr, column=5, value=r.e)  # Enota mere
             if r.f is not None:
-                ws.cell(row=xr, column=5, value=r.f)  # Kolicina
-            # F (Cena) prazno — izpolni uporabnik.
-            ws.cell(row=xr, column=7,
+                ws.cell(row=xr, column=6, value=r.f)  # Kolicina
+            # G (Cena) prazno — izpolni uporabnik.
+            ws.cell(row=xr, column=COL_IDX_ZNESEK,
                     value=f"=ROUND(${COL_KOLICINA}{xr}*{COL_CENA}{xr},2)")
-            # Z (skrit) — alfa koda iz 26. stolpca CSV.
             if r.z:
                 ws.cell(row=xr, column=26, value=r.z)
             fill = None
@@ -282,7 +298,7 @@ def write_xlsx(title: str, rows: list[Row], out_path: Path) -> None:
             ws.cell(row=xr, column=3, value=r.c)
             formula = sum_formula(r.children_rows)
             if formula:
-                ws.cell(row=xr, column=7, value=formula)
+                ws.cell(row=xr, column=COL_IDX_ZNESEK, value=formula)
             fill = fill_for_level(r.level)
             make_bold = True
 
