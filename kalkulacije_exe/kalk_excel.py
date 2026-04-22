@@ -169,6 +169,10 @@ def write_xlsx(title: str, rows: list[Row], out_path: Path) -> None:
     ws = wb.active
     ws.title = "BLIST"
 
+    # Summary row zgoraj (sekcija nad podrobnostmi), ne spodaj.
+    ws.sheet_properties.outlinePr.summaryBelow = False
+    ws.sheet_properties.outlinePr.summaryRight = False
+
     # Column widths
     for letter, w in COL_WIDTHS.items():
         ws.column_dimensions[letter].width = w
@@ -239,6 +243,10 @@ def write_xlsx(title: str, rows: list[Row], out_path: Path) -> None:
         ws.cell(row=xr, column=6).number_format = FMT_KOLICINA
         ws.cell(row=xr, column=7).number_format = FMT_EUR
         ws.cell(row=xr, column=8).number_format = FMT_EUR
+
+        # Row outline level (za gumbe "1 2 3 4 5 ..." na levi strani):
+        # L1 section = 1, L2 = 2, ..., postavka = parent_level + 1 (ze v r.level).
+        ws.row_dimensions[xr].outline_level = r.level
 
     ws.freeze_panes = "A3"
     wb.save(out_path)
