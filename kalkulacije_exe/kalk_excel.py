@@ -23,6 +23,7 @@ Uporaba: kalk_excel.exe <input.csv> <output.xlsx>
 Exit codes: 0=OK, 1=napaka (brez outputa).
 """
 import csv
+import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -182,19 +183,30 @@ def sum_formula(rows_xlsx: list[int]) -> str:
     return f"=SUM({refs},)"
 
 
-def opis_cell_value(r: Row) -> str:
-    """Opis za postavko: uporabi D (Opomba) polje iz CSV ce je polnejse, drugace C.
+_OPOMBA_RE = re.compile(r"(?<!^)(Opomba:|Opombe:)")
 
-    CSV pogosto v D ponovi Opis + doda 'Opombe: ...'. Ce D vsebuje vse kar je v
-    C-ju in vec, uporabi D. Drugace concatenate C + '\\n' + D.
+
+def _split_opombe(text: str) -> str:
+    """Vstavi newline pred vsakim 'Opomba:' / 'Opombe:' markerjem znotraj teksta.
+
+    Nekateri CSV-ji imajo 'opis.Opomba: ...Opombe: ...' v eni vrstici brez
+    locil — v Excelu se zlije. S tem splitom dobimo vsaj 3 vidne vrstice:
+    sam opis, Opomba: ..., Opombe: ...
     """
+    if not text:
+        return text
+    return _OPOMBA_RE.sub(r"\n\1", text)
+
+
+def opis_cell_value(r: Row) -> str:
+    """Opis za postavko: zdruzi C (opis) + D (opomba), loci 'Opomba(e):' markerje."""
     if not r.d:
-        return r.c
+        return _split_opombe(r.c)
     if r.c and r.c.strip() and r.c.strip() in r.d:
-        return r.d
+        return _split_opombe(r.d)
     if r.c and r.d:
-        return f"{r.c}\n{r.d}"
-    return r.d or r.c
+        return _split_opombe(f"{r.c}\n{r.d}")
+    return _split_opombe(r.d or r.c)
 
 
 def l1_xlsx_rows(rows: list[Row]) -> list[int]:
@@ -227,8 +239,6 @@ def write_xlsx(title: str, rows: list[Row], out_path: Path) -> None:
     # Column widths (A..G + Z).
     for letter, w in COL_WIDTHS.items():
         ws.column_dimensions[letter].width = w
-    # Skrit stolpec Z.
-    ws.column_dimensions["Z"].hidden = True
 
     # R1: glavni naslov
     ws.cell(row=1, column=1, value="Ponudbene postavke").alignment = WRAP
