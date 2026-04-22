@@ -81,6 +81,7 @@ def parse_csv(path: Path) -> tuple[str, list[Row]]:
     raw = path.read_bytes()
     text, enc = decode(raw)
     reader = list(csv.reader(text.splitlines(), delimiter=";", quotechar='"'))
+    _ = enc  # encoding odkrit — brez izpisa
 
     if len(reader) < 2:
         raise ValueError("CSV ima premalo vrstic (vsaj header + naslov)")
@@ -254,37 +255,26 @@ def write_xlsx(title: str, rows: list[Row], out_path: Path) -> None:
 
 def main(argv: list[str]) -> int:
     if len(argv) != 3:
-        print("Uporaba: kalk_excel.exe <input.csv> <output.xlsx>", file=sys.stderr)
         return 1
 
     in_path = Path(argv[1])
     out_path = Path(argv[2])
 
     if not in_path.is_file():
-        print(f"[err] vhodna datoteka ne obstaja: {in_path}", file=sys.stderr)
         return 1
 
     try:
         title, rows = parse_csv(in_path)
-    except Exception as exc:
-        print(f"[err] branje CSV: {exc}", file=sys.stderr)
+    except Exception:
         return 1
 
     assign_xlsx_rows_and_children(rows)
 
     try:
         write_xlsx(title, rows, out_path)
-    except PermissionError:
-        print(f"[err] izhodna datoteka je zaklenjena (Excel odprt?): {out_path}", file=sys.stderr)
-        return 1
-    except Exception as exc:
-        print(f"[err] pisanje XLSX: {exc}", file=sys.stderr)
+    except Exception:
         return 1
 
-    sections = sum(1 for r in rows if r.kind == "section")
-    items = sum(1 for r in rows if r.kind == "item")
-    print(f"[ok] {in_path} -> {out_path} | naslov={title!r} | sekcij={sections} postavk={items}",
-          file=sys.stderr)
     return 0
 
 

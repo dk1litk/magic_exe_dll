@@ -24,7 +24,7 @@ if (Test-Path $dist)  { Remove-Item $dist  -Recurse -Force }
 
 python -m PyInstaller `
     --onefile `
-    --console `
+    --noconsole `
     --name kalk_excel `
     --distpath $out `
     --workpath $build `
