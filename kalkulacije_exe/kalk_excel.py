@@ -32,8 +32,8 @@ from openpyxl.styles import Alignment, Font, PatternFill
 
 ENCODINGS = ("utf-8-sig", "utf-8", "cp1250", "cp1252")
 
-# Fill za grand total vrstico (R3) — svetlo pastelno zelena.
-FILL_TOTAL = PatternFill(start_color="FFBEF0BE", end_color="FFBEF0BE", fill_type="solid")
+# Fill za grand total vrstico (R3) — temno modra (opazno temnejsa od L1 C6D7F5).
+FILL_TOTAL = PatternFill(start_color="FF4472C4", end_color="FF4472C4", fill_type="solid")
 # L1 sekcija — modra.
 COLOR_L1 = "FFC6D7F5"
 # L2 (najtemnejsa zelena) -> L7 (svetlo zelena) interpolacija.
